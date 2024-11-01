@@ -3,9 +3,15 @@ import requests
 from dotenv import load_dotenv
 import os
 
+load_dotenv()
+
 # Retrieve bridge IP and username from environment variables
 bridge_ip = os.getenv("BRIDGE_IP")
 username = os.getenv("USERNAME")
+
+# Check if variables are loaded
+print("Bridge IP:", bridge_ip)
+print("Username:", username)
 
 def get_lights():
     url = f"http://{bridge_ip}/api/{username}/lights"
