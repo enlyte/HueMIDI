@@ -24,7 +24,7 @@ The goal of HueMIDI is to achieve full-featured control over Philips Hue lights 
 1. **Clone the Repository**  
    Clone the HueMIDI repository to your local machine:
    ```bash
-   git clone https://github.com/yourusername/HueMIDI.git
+   git clone https://github.com/enlyte/HueMIDI.git
    cd HueMIDI
    ```
 
