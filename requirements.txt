@@ -1,0 +1,4 @@
+python-dotenv>=0.21.0  # For loading environment variables from .env
+requests>=2.28.0       # For making HTTP requests to the Philips Hue API
+mido>=1.2.10           # For MIDI input handling
+python-rtmidi>=1.4.9   # MIDI backend required for real-time MIDI input
