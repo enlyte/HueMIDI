@@ -10,7 +10,8 @@ server_ip = os.getenv("SERVER_IP", "localhost")
 server_port = os.getenv("SERVER_PORT", "9010")
 BASE_URL = f"http://{server_ip}:{server_port}/api/v1/lights"
 
-light_ids = [1, 2, 5]  # Light IDs to control
+# Define Light IDs
+light_ids = [1, 2, 5]  # List of lights to control
 
 # Check the status of all lights
 def check_light_status():
@@ -61,55 +62,55 @@ def set_color(light_id, hue, sat, status):
     else:
         print(f"Light {light_id} is not reachable. Skipping color adjustment.")
 
-# Light Show Threads
-def light_show_1(status):
-    """Light 1: Cycle through a set of colors."""
-    colors = [0, 10000, 20000, 30000, 40000, 50000, 60000]
-    for hue in colors:
-        set_color(light_ids[0], hue, 254, status)
-        time.sleep(0.5)
+# Dynamic light show function
+def dynamic_light_show(light_id, index, status):
+    """Perform a unique light show effect based on the light index, keeping brightness consistent."""
+    if index % 3 == 0:
+        colors = [0, 10000, 20000, 30000, 40000, 50000, 60000]
+        for hue in colors:
+            set_color(light_id, hue, 254, status)  # Maximum saturation
+            set_brightness(light_id, 200, status)  # Maintain a high brightness level
+            time.sleep(0.3)  # Shorter delay for faster transitions
 
-def light_show_2(status):
-    """Light 2: Fade brightness up and down."""
-    for _ in range(2):
-        for brightness in range(0, 255, 15):
-            set_brightness(light_ids[1], brightness, status)
-            time.sleep(0.1)
-        for brightness in range(255, 0, -15):
-            set_brightness(light_ids[1], brightness, status)
-            time.sleep(0.1)
+    elif index % 3 == 1:
+        # Smooth, constant brightness transitions without going too dim
+        for _ in range(3):
+            for brightness in range(150, 255, 10):  # Brightness remains above 150
+                set_brightness(light_id, brightness, status)
+                time.sleep(0.1)
+            for brightness in range(255, 150, -10):
+                set_brightness(light_id, brightness, status)
+                time.sleep(0.1)
 
-def light_show_3(status):
-    """Light 3: Cycle through color temperatures."""
-    colors = [30000, 40000, 50000, 60000, 0, 10000, 20000]
-    for hue in colors:
-        set_color(light_ids[2], hue, 254, status)
-        time.sleep(0.5)
+    elif index % 3 == 2:
+        # Cycle through warmer color temperatures to maintain brightness
+        colors = [30000, 40000, 50000, 60000, 10000, 20000, 30000]
+        for hue in colors:
+            set_color(light_id, hue, 254, status)
+            set_brightness(light_id, 220, status)  # Slightly lower brightness for contrast
+            time.sleep(0.4)  # Moderate delay for smoother effect
 
 # Main Script
 if __name__ == "__main__":
     # Check the status of lights first
     light_status = check_light_status()
 
-    # Initialize lights by toggling them on if reachable
+    # Initialize lights by toggling them on only if they are off
     for light_id in light_ids:
-        toggle_light(light_id, light_status)
+        if not light_status.get(str(light_id), {}).get("on", False):
+            toggle_light(light_id, light_status)
         set_brightness(light_id, 100, light_status)
 
-    # Start threads for each light's unique effect
-    thread1 = threading.Thread(target=light_show_1, args=(light_status,))
-    thread2 = threading.Thread(target=light_show_2, args=(light_status,))
-    thread3 = threading.Thread(target=light_show_3, args=(light_status,))
-
-    # Start the threads
-    thread1.start()
-    thread2.start()
-    thread3.start()
+    # Start a thread for each light's unique effect
+    threads = []
+    for index, light_id in enumerate(light_ids):
+        thread = threading.Thread(target=dynamic_light_show, args=(light_id, index, light_status))
+        threads.append(thread)
+        thread.start()
 
     # Wait for all threads to complete
-    thread1.join()
-    thread2.join()
-    thread3.join()
+    for thread in threads:
+        thread.join()
 
     # Turn off lights after the show
     for light_id in light_ids:
