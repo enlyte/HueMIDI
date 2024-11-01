@@ -1,4 +1,3 @@
-# getLightIDs.py
 import requests
 from dotenv import load_dotenv
 import os
@@ -20,8 +19,17 @@ def get_lights():
     # Check if the response was successful
     if response.status_code == 200:
         lights = response.json()
-        for light_id, light_info in lights.items():
-            print(f"Light ID: {light_id}, Name: {light_info['name']}")
+
+        # Check if lights is a dictionary or a list
+        if isinstance(lights, dict):
+            for light_id, light_info in lights.items():
+                print(f"Light ID: {light_id}, Name: {light_info['name']}")
+        elif isinstance(lights, list):
+            for light in lights:
+                print(f"Light ID: {light.get('id', 'Unknown')}, Name: {light.get('name', 'Unknown')}")
+        else:
+            print("Unexpected format in response:", lights)
+
         return lights
     else:
         print("Failed to retrieve lights:", response.status_code, response.text)
