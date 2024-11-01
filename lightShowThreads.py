@@ -9,7 +9,8 @@ import os
 load_dotenv()
 bridge_ip = os.getenv("BRIDGE_IP")
 username = os.getenv("USERNAME")
-light_ids = [1, 2, 5]  # Light IDs to control
+light_ids = [1]  # Update as needed with available Light IDs
+# light_ids = [1, 2, 5]  # Light IDs to control
 
 # Philips Hue API Functions
 def set_light_state(light_id, state_data):
@@ -45,33 +46,30 @@ def set_temperature(light_id, ct):
 # Light Show Threads
 def light_show_1():
     """Light 1: Cycle through a set of colors."""
-    colors = [0, 10000, 20000, 30000, 40000, 50000, 60000]
-    for hue in colors:
-        set_color(light_ids[0], hue)
-        time.sleep(0.5)
+    if len(light_ids) > 0:
+        colors = [0, 10000, 20000, 30000, 40000, 50000, 60000]
+        for hue in colors:
+            set_color(light_ids[0], hue)
+            time.sleep(0.5)
 
 def light_show_2():
     """Light 2: Fade brightness up and down."""
-    for _ in range(2):  # Repeat fade twice
-        for brightness in range(0, 255, 15):  # Fade up
-            set_brightness(light_ids[1], brightness)
-            time.sleep(0.1)
-        for brightness in range(255, 0, -15):  # Fade down
-            set_brightness(light_ids[1], brightness)
-            time.sleep(0.1)
+    if len(light_ids) > 1:
+        for _ in range(2):  # Repeat fade twice
+            for brightness in range(0, 255, 15):  # Fade up
+                set_brightness(light_ids[1], brightness)
+                time.sleep(0.1)
+            for brightness in range(255, 0, -15):  # Fade down
+                set_brightness(light_ids[1], brightness)
+                time.sleep(0.1)
 
 def light_show_3():
     """Light 3: Cycle through color temperatures."""
-    # temperatures = [153, 200, 300, 400, 500]
-    # for ct in temperatures:
-    #     set_temperature(light_ids[2], ct)
-    #     time.sleep(0.5)
-
-    """Light 1: Cycle through a set of colors."""
-    colors = [30000, 40000, 50000, 60000, 0, 10000, 20000, ]
-    for hue in colors:
-        set_color(light_ids[0], hue)
-        time.sleep(0.5)
+    if len(light_ids) > 2:
+        colors = [30000, 40000, 50000, 60000, 0, 10000, 20000]
+        for hue in colors:
+            set_color(light_ids[2], hue)
+            time.sleep(0.5)
 
 # Main Script
 if __name__ == "__main__":
@@ -98,6 +96,4 @@ if __name__ == "__main__":
     # Turn off lights after the show
     for light_id in light_ids:
         turn_off_light(light_id)
-    
-    # Uncomment for MIDI inputs (for future use)
-    # listen_for_midi()
+

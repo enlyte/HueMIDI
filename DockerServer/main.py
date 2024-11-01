@@ -19,77 +19,80 @@ class LightState(BaseModel):
     hue: int = None
     sat: int = 254
 
+def fetch_lights_data():
+    """Fetch and process light data from the Philips Hue API."""
+    try:
+        response = requests.get(HUE_API_URL)
+        response.raise_for_status()
+        lights = response.json()
 
+        # Process response structure (dict or list) into a unified format
+        processed_lights = {}
+        if isinstance(lights, dict):
+            for light_id, info in lights.items():
+                processed_lights[light_id] = {
+                    "name": info["name"],
+                    "reachable": info["state"].get("reachable", False),
+                    "on": info["state"].get("on", False),
+                    "state": info["state"]
+                }
+        elif isinstance(lights, list):
+            for index, info in enumerate(lights):
+                processed_lights[str(index)] = {
+                    "name": info.get("name", "Unknown"),
+                    "reachable": info.get("state", {}).get("reachable", False),
+                    "on": info.get("state", {}).get("on", False),
+                    "state": info.get("state", {})
+                }
+        else:
+            logger.error("Unexpected lights response format.")
+            raise HTTPException(status_code=500, detail="Unexpected lights response format")
+
+        logger.info("Successfully processed lights data.")
+        return processed_lights
+    except requests.exceptions.RequestException as e:
+        logger.error("Failed to retrieve lights data: %s", str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve lights data")
 
 # Endpoint to check the status of all lights
 @app.get("/api/v1/lights/status")
 def check_light_status():
-    try:
-        response = requests.get(HUE_API_URL)
-        response.raise_for_status()
-        lights = response.json()
-        status_info = {}
-        for light_id, info in lights.items():
-            status_info[light_id] = {
-                "name": info["name"],
-                "reachable": info["state"].get("reachable", False),
-                "on": info["state"].get("on", False)
-            }
-        logger.info("Retrieved light status information successfully.")
-        return status_info
-    except requests.exceptions.RequestException as e:
-        logger.error("Failed to retrieve lights status: %s", str(e))
-        raise HTTPException(status_code=500, detail="Failed to retrieve lights status")
-
+    status_info = fetch_lights_data()
+    return {light_id: {k: v for k, v in info.items() if k != "state"} for light_id, info in status_info.items()}
 
 # Endpoint to retrieve all lights
 @app.get("/api/v1/lights")
 def get_lights():
-    try:
-        response = requests.get(HUE_API_URL)
-        response.raise_for_status()  # Raise an exception for 4xx/5xx errors
-        logger.info("Successfully retrieved lights.")
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        logger.error("Failed to retrieve lights: %s", str(e))
-        raise HTTPException(status_code=500, detail="Failed to retrieve lights")
+    return fetch_lights_data()
 
-# Improved toggle_light function with enhanced reachability checks and retry logic
+# Toggle light with enhanced reachability checks and error handling
 @app.put("/api/v1/lights/{light_id}/toggle")
 def toggle_light(light_id: int):
+    lights = fetch_lights_data()
+    if str(light_id) not in lights:
+        logger.error(f"Light {light_id} not found in response.")
+        raise HTTPException(status_code=404, detail="Light not found")
+
+    light_info = lights[str(light_id)]
+    if not light_info["reachable"]:
+        logger.error(f"Light {light_id} is not reachable.")
+        raise HTTPException(status_code=503, detail="Light not reachable")
+
+    # Toggle based on current state
+    current_state = light_info["on"]
+    toggle_data = {"on": not current_state}
+
+    # Send the toggle request
     state_url = f"{HUE_API_URL}/{light_id}/state"
-    
     try:
-        # Retrieve current state
-        response = requests.get(HUE_API_URL)
-        response.raise_for_status()
-        lights = response.json()
-
-        if str(light_id) not in lights:
-            logger.error(f"Light {light_id} not found in response.")
-            raise HTTPException(status_code=404, detail="Light not found")
-
-        light_info = lights[str(light_id)]
-        if not light_info["state"].get("reachable", False):
-            logger.error(f"Light {light_id} is not reachable.")
-            raise HTTPException(status_code=503, detail="Light not reachable")
-
-        # Toggle based on current state
-        current_state = light_info["state"]["on"]
-        toggle_data = {"on": not current_state}
-
-        # Send the toggle request
         toggle_response = requests.put(state_url, json=toggle_data)
         toggle_response.raise_for_status()
-
         logger.info(f"Toggled light {light_id} to {'on' if not current_state else 'off'}")
         return toggle_response.json()
-
     except requests.exceptions.RequestException as e:
         logger.error("Failed to toggle light %d: %s", light_id, str(e))
         raise HTTPException(status_code=500, detail="Failed to toggle light")
 
-        
 # Set brightness
 @app.put("/api/v1/lights/{light_id}/brightness/{value}")
 def set_brightness(light_id: int, value: int):
