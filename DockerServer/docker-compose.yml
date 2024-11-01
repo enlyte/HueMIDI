@@ -1,0 +1,10 @@
+services:
+  huemidi-server:
+    build: .
+    ports:
+      - "9010:9010"
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+    restart: unless-stopped
